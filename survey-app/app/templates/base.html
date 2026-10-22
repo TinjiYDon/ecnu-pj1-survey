@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}问卷系统{% endblock %}</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 24px auto; padding: 0 12px; }
+    nav a { margin-right: 12px; }
+    .flash { background: #eef8ee; border: 1px solid #b7e0b7; padding: 8px 12px; }
+    .card { border: 1px solid #ddd; padding: 12px; margin: 12px 0; }
+    label { display: block; margin: 8px 0 4px; }
+    input, textarea, select { width: 100%; max-width: 480px; }
+    button { margin-top: 8px; }
+    .muted { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">首页</a>
+    {% if user %}
+      <a href="/surveys">我的问卷</a>
+      <a href="/questions">题库</a>
+      <span class="muted">{{ user['username'] }}</span>
+      <form action="/logout" method="post" style="display:inline">
+        <button type="submit">退出</button>
+      </form>
+    {% else %}
+      <a href="/login">登录</a>
+      <a href="/register">注册</a>
+    {% endif %}
+  </nav>
+  {% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+  {% block body %}{% endblock %}
+</body>
+</html>

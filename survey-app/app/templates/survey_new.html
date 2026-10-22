@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}新建问卷{% endblock %}
+{% block body %}
+<h1>新建问卷</h1>
+<form method="post">
+  <label>标题</label>
+  <input name="title" required>
+  <label>说明</label>
+  <textarea name="description"></textarea>
+  <label><input type="checkbox" name="allow_anonymous"> 允许匿名填写（仍需登录，统计时隐藏身份）</label>
+  <label><input type="checkbox" name="allow_multiple"> 同一人可填多次</label>
+  <label>截止时间（可选，ISO，如 2026-12-31T23:59:00+08:00）</label>
+  <input name="deadline">
+  <button type="submit">创建</button>
+</form>
+{% endblock %}

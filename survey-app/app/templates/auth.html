@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{% if mode=='register' %}注册{% else %}登录{% endif %}{% endblock %}
+{% block body %}
+<h1>{% if mode=='register' %}注册{% else %}登录{% endif %}</h1>
+<form method="post">
+  <label>用户名</label>
+  <input name="username" required>
+  <label>密码</label>
+  <input name="password" type="password" required>
+  <button type="submit">{% if mode=='register' %}注册{% else %}登录{% endif %}</button>
+</form>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}统计{% endblock %}
+{% block body %}
+<h1>{% if cross %}跨卷题目统计{% else %}问卷统计{% endif %}</h1>
+{% if cross %}
+  <p>{{ stats.question.stem }} · 被 {{ stats.used_in_surveys }} 份问卷使用</p>
+  <pre>{{ stats.stats }}</pre>
+{% else %}
+  <p>{{ stats.survey.title }} · 共 {{ stats.total_responses }} 份答卷</p>
+  {% for it in stats.items %}
+    <div class="card">
+      <h3>{{ it.item_id }} {{ it.question.stem if it.question else '' }}</h3>
+      <pre>{{ it.stats }}</pre>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ survey.title }}{% endblock %}
+{% block body %}
+<h1>{{ survey.title }}</h1>
+<p class="muted">状态 {{ survey.status }} · 链接 <code>/survey/{{ survey.slug }}</code></p>
+<p>{{ survey.description }}</p>
+<p>
+  {% if survey.status == 'draft' %}
+  <form action="/surveys/{{ survey.id }}/publish" method="post" style="display:inline"><button>发布</button></form>
+  {% elif survey.status == 'published' %}
+  <form action="/surveys/{{ survey.id }}/close" method="post" style="display:inline"><button>关闭</button></form>
+  {% endif %}
+  <a href="/surveys/{{ survey.id }}/stats">查看统计</a>
+</p>
+
+<h2>题目编排</h2>
+<ol>
+{% for a in attached %}
+  <li>{{ a.item.item_id }} · {{ a.question.stem if a.question else '?' }}
+    （{{ a.question.type if a.question else '' }}）
+    {% if a.item.required %}必答{% endif %}
+  </li>
+{% endfor %}
+</ol>
+
+{% if survey.status == 'draft' %}
+<h3>从题库加入</h3>
+<form action="/surveys/{{ survey.id }}/items" method="post">
+  <select name="question_id">
+    {% for q in bank %}
+      <option value="{{ q.id }}">v{{ q.version }} {{ q.stem }}</option>
+    {% endfor %}
+  </select>
+  <label><input type="checkbox" name="required" checked> 必答</label>
+  <button>加入</button>
+</form>
+
+<h3>跳转规则</h3>
+<ul>
+{% for r in survey.jump_rules %}
+  <li>{{ r.from_item }} · {{ r.when }} → {{ r.to_item }}</li>
+{% endfor %}
+</ul>
+<form action="/surveys/{{ survey.id }}/jumps" method="post">
+  <label>从 item_id</label>
+  <input name="from_item" placeholder="q1">
+  <label>条件类型</label>
+  <select name="op">
+    <option value="eq">单选等于</option>
+    <option value="includes">多选包含</option>
+    <option value="eq_number">数字等于</option>
+  </select>
+  <label>选项/数值</label>
+  <input name="option">
+  <label>跳到 item_id 或 end</label>
+  <input name="to_item" placeholder="q3 或 end">
+  <button>添加规则</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}我的问卷{% endblock %}
+{% block body %}
+<h1>我的问卷</h1>
+<p><a href="/surveys/new">新建问卷</a></p>
+{% for s in surveys %}
+  <div class="card">
+    <a href="/surveys/{{ s.id }}">{{ s.title }}</a>
+    <span class="muted">{{ s.status }} · /survey/{{ s.slug }}</span>
+  </div>
+{% else %}
+  <p>还没有问卷。</p>
+{% endfor %}
+{% endblock %}
