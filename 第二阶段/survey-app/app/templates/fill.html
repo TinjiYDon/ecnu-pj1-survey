@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}填写 {{ survey.title }}{% endblock %}
+{% block body %}
+<h1>{{ survey.title }}</h1>
+<p>{{ survey.description }}</p>
+<form method="post" action="/survey/{{ slug }}/submit">
+{% for a in attached %}
+  <div class="card">
+    <p><strong>{{ a.item.item_id }}.</strong> {{ a.question.stem }}
+      {% if a.item.required %}*{% endif %}
+    </p>
+    {% if a.question.type == 'single' %}
+      {% for o in a.question.options %}
+        <label><input type="radio" name="{{ a.item.item_id }}" value="{{ o }}"> {{ o }}</label>
+      {% endfor %}
+    {% elif a.question.type == 'multi' %}
+      {% for o in a.question.options %}
+        <label><input type="checkbox" name="{{ a.item.item_id }}" value="{{ o }}"> {{ o }}</label>
+      {% endfor %}
+    {% elif a.question.type == 'number' %}
+      <input name="{{ a.item.item_id }}" type="number" step="any">
+    {% else %}
+      <input name="{{ a.item.item_id }}">
+    {% endif %}
+  </div>
+{% endfor %}
+  {% if survey.allow_anonymous %}
+  <label><input type="checkbox" name="anonymous"> 匿名提交（不在统计中展示我的用户名）</label>
+  {% endif %}
+  <button>提交</button>
+</form>
+<p class="muted">跳转规则在服务端校验提交路径；不符合规则的必答题会报错。</p>
+{% endblock %}

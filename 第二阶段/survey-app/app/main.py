@@ -65,12 +65,12 @@ def ctx(request: Request, **extra):
 # ---------- pages ----------
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse("home.html", ctx(request))
+    return templates.TemplateResponse(request, "home.html", ctx(request))
 
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
-    return templates.TemplateResponse("auth.html", ctx(request, mode="register"))
+    return templates.TemplateResponse(request, "auth.html", ctx(request, mode="register"))
 
 
 @app.post("/register")
@@ -83,7 +83,7 @@ def register_post(request: Request, username: str = Form(...), password: str = F
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("auth.html", ctx(request, mode="login"))
+    return templates.TemplateResponse(request, "auth.html", ctx(request, mode="login"))
 
 
 @app.post("/login")
@@ -103,14 +103,14 @@ def logout(request: Request):
 def surveys_page(request: Request):
     user = require_user(request)
     return templates.TemplateResponse(
-        "surveys.html", ctx(request, surveys=[public_survey(s) for s in svc().my_surveys(user)])
+        request, "surveys.html", ctx(request, surveys=[public_survey(s) for s in svc().my_surveys(user)])
     )
 
 
 @app.get("/surveys/new", response_class=HTMLResponse)
 def survey_new_page(request: Request):
     require_user(request)
-    return templates.TemplateResponse("survey_new.html", ctx(request))
+    return templates.TemplateResponse(request, "survey_new.html", ctx(request))
 
 
 @app.post("/surveys/new")
@@ -143,6 +143,7 @@ def survey_detail(request: Request, sid: str):
     qs = svc().list_questions(user, scope="bank")
     attached = svc().attach_questions(s)
     return templates.TemplateResponse(
+        request,
         "survey_detail.html",
         ctx(
             request,
@@ -203,7 +204,7 @@ def survey_close(request: Request, sid: str):
 def survey_stats_page(request: Request, sid: str):
     user = require_user(request)
     stats = svc().survey_stats(user, sid)
-    return templates.TemplateResponse("stats.html", ctx(request, stats=stats, cross=False))
+    return templates.TemplateResponse(request, "stats.html", ctx(request, stats=stats, cross=False))
 
 
 @app.get("/questions", response_class=HTMLResponse)
@@ -211,14 +212,14 @@ def questions_page(request: Request, scope: str = "own"):
     user = require_user(request)
     qs = svc().list_questions(user, scope=scope)
     return templates.TemplateResponse(
-        "questions.html", ctx(request, questions=[public_question(q) for q in qs], scope=scope)
+        request, "questions.html", ctx(request, questions=[public_question(q) for q in qs], scope=scope)
     )
 
 
 @app.get("/questions/new", response_class=HTMLResponse)
 def question_new_page(request: Request):
     require_user(request)
-    return templates.TemplateResponse("question_form.html", ctx(request, mode="new", question=None))
+    return templates.TemplateResponse(request, "question_form.html", ctx(request, mode="new", question=None))
 
 
 @app.post("/questions/new")
@@ -275,16 +276,42 @@ def question_detail(request: Request, qid: str):
     user = require_user(request)
     q = svc().get_question(user, qid)
     vers = svc().versions(user, str(q["logical_id"]))
-    usage = svc().question_usage(user, qid)
+    usage = svc().question_usage(user, qid, scope="family")
     return templates.TemplateResponse(
+        request,
         "question_detail.html",
         ctx(
             request,
             question=public_question(q),
             versions=[public_question(v) for v in vers],
-            usage=[public_survey(s, include_items=False) for s in usage],
+            latest_version=max(int(v["version"]) for v in vers),
+            is_owner=q["owner_id"] == user["_id"],
+            usage=[
+                {
+                    "survey": public_survey(row["survey"], include_items=False),
+                    "versions_used": row["versions_used"],
+                }
+                for row in usage
+            ],
         ),
     )
+
+
+@app.post("/questions/{qid}/restore")
+def question_restore(request: Request, qid: str):
+    user = require_user(request)
+    new = svc().restore_version(user, qid)
+    request.session["flash"] = f"已把该版内容恢复为 v{new['version']}，历史版本保留不变"
+    return RedirectResponse(f"/questions/{new['_id']}", status_code=303)
+
+
+@app.post("/questions/{qid}/bank")
+def question_bank(request: Request, qid: str, in_bank: str = Form(...)):
+    user = require_user(request)
+    flag = in_bank.lower() in ("1", "true", "yes", "on")
+    svc().set_bank(user, qid, flag)
+    request.session["flash"] = "已加入题库" if flag else "已移出题库"
+    return RedirectResponse(f"/questions/{qid}", status_code=303)
 
 
 @app.post("/questions/{qid}/save")
@@ -319,10 +346,10 @@ def question_share(request: Request, qid: str, username: str = Form(...)):
 
 
 @app.get("/questions/{qid}/stats-cross", response_class=HTMLResponse)
-def question_cross_stats(request: Request, qid: str):
+def question_cross_stats(request: Request, qid: str, scope: str = "family"):
     user = require_user(request)
-    stats = svc().cross_question_stats(user, qid)
-    return templates.TemplateResponse("stats.html", ctx(request, stats=stats, cross=True))
+    stats = svc().cross_question_stats(user, qid, scope=scope)
+    return templates.TemplateResponse(request, "stats.html", ctx(request, stats=stats, cross=True))
 
 
 @app.get("/survey/{slug}", response_class=HTMLResponse)
@@ -331,6 +358,7 @@ def fill_page(request: Request, slug: str):
     s = svc().get_by_slug(slug)
     attached = svc().attach_questions(s)
     return templates.TemplateResponse(
+        request,
         "fill.html",
         ctx(request, survey=public_survey(s), attached=attached, slug=slug),
     )
@@ -426,17 +454,47 @@ def api_share(request: Request, qid: str, payload: dict):
     return {"ok": True, "question": public_question(q)}
 
 
-@app.get("/api/questions/{qid}/usage")
-def api_usage(request: Request, qid: str):
+@app.post("/api/questions/{qid}/restore")
+def api_restore(request: Request, qid: str):
     user = require_user(request)
-    usage = svc().question_usage(user, qid)
-    return {"ok": True, "surveys": [public_survey(s, include_items=False) for s in usage]}
+    q = svc().restore_version(user, qid)
+    return {"ok": True, "question": public_question(q), "message": f"已恢复为 v{q['version']}"}
+
+
+@app.post("/api/questions/{qid}/bank")
+def api_bank(request: Request, qid: str, payload: dict):
+    user = require_user(request)
+    q = svc().set_bank(user, qid, bool(payload.get("in_bank")))
+    return {"ok": True, "question": public_question(q)}
+
+
+@app.get("/api/questions/{qid}/usage")
+def api_usage(request: Request, qid: str, scope: str = "version"):
+    user = require_user(request)
+    usage = svc().question_usage(user, qid, scope=scope)
+    if scope == "family":
+        return {
+            "ok": True,
+            "scope": "family",
+            "surveys": [
+                {
+                    **public_survey(row["survey"], include_items=False),
+                    "versions_used": row["versions_used"],
+                }
+                for row in usage
+            ],
+        }
+    return {
+        "ok": True,
+        "scope": "version",
+        "surveys": [public_survey(s, include_items=False) for s in usage],
+    }
 
 
 @app.get("/api/questions/{qid}/stats")
-def api_q_stats(request: Request, qid: str):
+def api_q_stats(request: Request, qid: str, scope: str = "version"):
     user = require_user(request)
-    return {"ok": True, **svc().cross_question_stats(user, qid)}
+    return {"ok": True, **svc().cross_question_stats(user, qid, scope=scope)}
 
 
 @app.get("/api/surveys")

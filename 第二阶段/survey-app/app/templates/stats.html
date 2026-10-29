@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}统计{% endblock %}
+{% block body %}
+<h1>{% if cross %}跨卷题目统计{% else %}问卷统计{% endif %}</h1>
+{% if cross %}
+  <p>
+    {{ stats.question.stem }} · 被 {{ stats.used_in_surveys }} 份问卷使用 ·
+    统计口径：{{ "题目族（所有版本）" if stats.scope == "family" else "仅当前版本" }}
+    （<a href="/questions/{{ stats.question.id }}/stats-cross?scope={{ 'version' if stats.scope == 'family' else 'family' }}">切换口径</a>）
+  </p>
+  <pre>{{ stats.stats }}</pre>
+  {% if stats.by_version %}
+  <h2>按版本细分</h2>
+  {% for b in stats.by_version %}
+    <div class="card">
+      <h3>v{{ b.version }} · {{ b.answers }} 份作答</h3>
+      <pre>{{ b.stats }}</pre>
+    </div>
+  {% endfor %}
+  {% endif %}
+{% else %}
+  <p>{{ stats.survey.title }} · 共 {{ stats.total_responses }} 份答卷</p>
+  {% for it in stats['items'] %}
+    <div class="card">
+      <h3>{{ it.item_id }} {{ it.question.stem if it.question else '' }}</h3>
+      <pre>{{ it.stats }}</pre>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

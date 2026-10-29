@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}题库{% endblock %}
+{% block body %}
+<h1>题库</h1>
+<p>
+  <a href="/questions?scope=own">我的</a> ·
+  <a href="/questions?scope=bank">可选题</a> ·
+  <a href="/questions?scope=shared">别人分享给我的</a> ·
+  <a href="/questions/new">新建题目</a>
+</p>
+{% for q in questions %}
+  <div class="card">
+    <a href="/questions/{{ q.id }}">{{ q.stem }}</a>
+    <span class="muted">
+      {{ q.type }} · v{{ q.version }} · {{ q.category }}{% if q.in_bank %} · 题库{% endif %}
+    </span>
+  </div>
+{% else %}
+  <p>没有题目。</p>
+{% endfor %}
+{% endblock %}

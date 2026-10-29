@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}新建题目{% endblock %}
+{% block body %}
+<h1>新建题目（v1）</h1>
+<form method="post">
+  <label>题型</label>
+  <select name="qtype">
+    <option value="single">单选</option>
+    <option value="multi">多选</option>
+    <option value="text">文本填空</option>
+    <option value="number">数字填空</option>
+  </select>
+  <label>题干</label>
+  <textarea name="stem" required></textarea>
+  <label>选项（每行一个，选择题必填）</label>
+  <textarea name="options"></textarea>
+  <label>分类</label>
+  <input name="category" placeholder="人口统计">
+  <label><input type="checkbox" name="in_bank" checked> 放入题库便于选题</label>
+  <p>多选限制</p>
+  <input name="min_select" placeholder="至少选几个">
+  <input name="max_select" placeholder="最多选几个">
+  <p>文本字数</p>
+  <input name="min_len" placeholder="最少字">
+  <input name="max_len" placeholder="最多字">
+  <p>数字范围</p>
+  <input name="num_min" placeholder="最小值">
+  <input name="num_max" placeholder="最大值">
+  <label><input type="checkbox" name="integer"> 必须整数</label>
+  <button>创建</button>
+</form>
+{% endblock %}

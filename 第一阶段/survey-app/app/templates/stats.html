@@ -7,7 +7,7 @@
   <pre>{{ stats.stats }}</pre>
 {% else %}
   <p>{{ stats.survey.title }} · 共 {{ stats.total_responses }} 份答卷</p>
-  {% for it in stats.items %}
+  {% for it in stats['items'] %}
     <div class="card">
       <h3>{{ it.item_id }} {{ it.question.stem if it.question else '' }}</h3>
       <pre>{{ it.stats }}</pre>

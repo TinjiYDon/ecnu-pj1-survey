@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ question.stem }}{% endblock %}
+{% block body %}
+<h1>{{ question.stem }}</h1>
+<p class="muted">
+  {{ question.type }} · v{{ question.version }} · 分类 {{ question.category }}
+  · {% if question.in_bank %}在题库{% else %}未入题库{% endif %}
+  {% if question.restored_from %}· 内容恢复自旧版{% endif %}
+</p>
+<p>选项：{{ question.options }}</p>
+<p>校验：{{ question.validation }}</p>
+<p>分享给：{{ question.shared_with }}</p>
+
+{% if is_owner %}
+<h2>题库管理</h2>
+<form action="/questions/{{ question.id }}/bank" method="post">
+  {% if question.in_bank %}
+  <input type="hidden" name="in_bank" value="false">
+  <button>移出题库</button>
+  <span class="muted">整个版本族一起移出，组卷下拉不再出现。</span>
+  {% else %}
+  <input type="hidden" name="in_bank" value="true">
+  <button>加入题库</button>
+  {% endif %}
+</form>
+
+<h2>保存为新版本</h2>
+<p class="muted">不会覆盖旧版。已引用旧版的问卷不受影响。</p>
+<form action="/questions/{{ question.id }}/save" method="post">
+  <label>题干</label>
+  <textarea name="stem">{{ question.stem }}</textarea>
+  <label>选项（每行一个）</label>
+  <textarea name="options">{% for o in question.options %}{{ o }}
+{% endfor %}</textarea>
+  <label>分类</label>
+  <input name="category" value="{{ question.category }}">
+  <button>保存为新版本</button>
+</form>
+
+<h2>分享给其他用户</h2>
+<form action="/questions/{{ question.id }}/share" method="post">
+  <input name="username" placeholder="对方用户名">
+  <button>分享</button>
+</form>
+{% endif %}
+
+<h2>版本历史</h2>
+<ul>
+{% for v in versions %}
+  <li>
+    <a href="/questions/{{ v.id }}">v{{ v.version }}</a> {{ v.stem }}
+    {% if v.restored_from %}（内容恢复自旧版）
+    {% elif v.derived_from %}（来自 {{ v.derived_from }}）{% endif %}
+    {% if is_owner and v.version < latest_version %}
+    <form action="/questions/{{ v.id }}/restore" method="post" style="display:inline">
+      <button>恢复此版本</button>
+    </form>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+
+<h2>被哪些问卷使用（含所有版本）</h2>
+<ul>
+{% for u in usage %}
+  <li>{{ u.survey.title }}（{{ u.survey.status }}）— 引用版本：
+    {% for vn in u.versions_used %}v{{ vn }} {% endfor %}
+  </li>
+{% else %}
+  <li>暂无</li>
+{% endfor %}
+</ul>
+<p><a href="/questions/{{ question.id }}/stats-cross">跨卷统计（按题目族）</a></p>
+{% endblock %}
